@@ -216,7 +216,14 @@
         const maxLen = Math.max(...unique.map(c => c.length));
         const filtered = unique.filter(c => c.length === maxLen);
         filtered.sort((a, b) => compareCost(getCost(a), getCost(b)));
-        return { total: bestTotal, combos: filtered };
+
+        // Оставляем только варианты с минимальной разницей по общему
+        // размеру подотрядов (totalDiff). Если минимальная разница ≤ 1 —
+        // это автоматически отсекает неравномерные варианты.
+        const minTotalDiff = getCost(filtered[0])[0];
+        const balanced = filtered.filter(c => getCost(c)[0] === minTotalDiff);
+
+        return { total: bestTotal, combos: balanced };
       }
 
       return { total: bestTotal, combos: unique };
@@ -336,15 +343,12 @@
         let phraseHtml = '';
 
         if (extended) {
-          // 1) Можно ли вообще отправить всех без расширения?
           const N_noExt = findMinSquadsNoExt(H, P, maxSquads);
           if (N_noExt !== null && N_noExt > L) {
-            // Случай A: без расширения можно, но не хватает ведущих
             const extra = N_noExt - L;
             warningHtml = '<div class="warning">Недостаточно ведущих для отправки без расширения</div>';
             phraseHtml = `<p class="note">Нужно найти ${formatLeadersCount(extra)}. Если нет — отправить расширенный подотряд.</p>`;
           } else {
-            // 2) Без расширения нельзя, но можно сократить число расширенных подотрядов
             let bestN = null;
             let bestExt = currentExtCount;
             for (let n = maxAvailable + 1; n <= maxSquads; n++) {
