@@ -38,7 +38,9 @@
   <div class="form">
     <label>Время сбора:
       <select id="time">
-        <option value="normal">00:00, 10:00, 14:00</option>
+        <option value="00">00:00</option>
+        <option value="10">10:00</option>
+        <option value="14">14:00</option>
         <option value="18">18:00</option>
         <option value="22">22:00</option>
       </select>
@@ -95,20 +97,32 @@
       return 0;
     }
 
-    // Переставляет подотряды так, чтобы самый большой оказался на месте
-    // «Соснового оврага», если он есть в списке направлений.
-    // Иначе — самым большим делаем первый подотряд.
+    // Переставляет подотряды так, чтобы носильщики убывали от первого
+    // к последнему. Подотряд с наибольшим числом носильщиков (при равенстве —
+    // с наибольшим общим числом людей) ставится на место «Соснового оврага»,
+    // если он есть в списке направлений. Иначе — на первое место.
     function orderForDirections(pairs, directions) {
       if (pairs.length === 0) return [];
-      const sorted = [...pairs].sort((a, b) => (b[0] + b[1]) - (a[0] + a[1]) || b[0] - a[0]);
+      const n = pairs.length;
       const targetIdx = directions.indexOf('Сосновый овраг');
-      const idx = targetIdx !== -1 ? targetIdx : 0;
-      const result = new Array(pairs.length);
-      result[idx] = sorted.shift();
-      let sortedIdx = 0;
-      for (let i = 0; i < pairs.length; i++) {
-        if (i === idx) continue;
-        result[i] = sorted[sortedIdx++];
+
+      const sorted = [...pairs].sort((a, b) =>
+        b[1] - a[1] ||
+        (b[0] + b[1]) - (a[0] + a[1]) ||
+        b[0] - a[0]
+      );
+
+      if (targetIdx === -1) return sorted;
+
+      const anchor = sorted[0];
+      const rest = sorted.slice(1);
+
+      const result = new Array(n);
+      result[targetIdx] = anchor;
+      let j = 0;
+      for (let i = 0; i < n; i++) {
+        if (i === targetIdx) continue;
+        result[i] = rest[j++];
       }
       return result;
     }
@@ -282,8 +296,12 @@
 
     function getDirections(time, N) {
       let directions = [];
-      if (time === 'normal') {
+      if (time === '00') {
         directions = ['Дремучая чаща', 'Серебристая река', 'Лисий лес'];
+      } else if (time === '10') {
+        directions = ['Лисий лес', 'Дремучая чаща', 'Серебристая река'];
+      } else if (time === '14') {
+        directions = ['Серебристая река', 'Лисий лес', 'Дремучая чаща'];
       } else if (time === '18') {
         directions = ['Сосновый овраг', 'Дремучая чаща', 'Серебристая река', 'Лисий лес'];
       } else if (time === '22') {
@@ -381,7 +399,7 @@
         html += '<h2>Результат</h2>';
         html += warningHtml;
         html += `<p><strong>Время:</strong> ${document.getElementById('time').options[document.getElementById('time').selectedIndex].text}</p>`;
-        html += `<p><strong>Охотников:</strong> ${H}, <strong>Носильщиков:</strong> ${P}, <strong>Ведущих учтено:</strong> ${Math.min(L, N)}</p>`;
+        html += `<p><strong>Охотников:</strong> ${H}, <strong>Носильщиков:</strong> ${P}, <strong>Ведущих назначено:</strong> ${Math.min(L, N)}</p>`;
         if (noteExtraLeaders) html += `<p class="note">${noteExtraLeaders}</p>`;
         html += `<p><strong>Подотрядов:</strong> ${N}${extended ? ' (использованы расширенные места)' : ''}</p>`;
         if (extended) {
